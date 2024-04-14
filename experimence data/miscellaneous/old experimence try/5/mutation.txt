@@ -1,0 +1,145 @@
+                                if(rand.nextDouble()<0.5)ns = new SolutionLinkList(pop.get(currentIndex).neighbor());
+
+
+
+		int u = 0, v = 0;
+		// let v be a no-leaf node, u is a leaf node
+		if (degrees[edges[dIdx].p1] == 1) {
+			u = edges[dIdx].p1;
+			v = edges[dIdx].p2;
+		} else if (degrees[edges[dIdx].p2] == 1) {
+			u = edges[dIdx].p2;
+			v = edges[dIdx].p1;
+		} else {
+			System.err.println("Error in selected edge");
+			System.exit(1);
+		}
+
+		// listV stores those nodes which are in the same subtree with node v
+		List<Integer> listV = new ArrayList<>();
+		for (int i = 0; i < degrees.length; i++) {
+			if (i != u) {
+				listV.add(i);
+			}
+		}
+		int[] degs = this.degrees.clone();
+		degs[u]--;
+		degs[v]--;
+		// System.out.println("Edge " + u + "--" + v + " is removed.");
+
+		if (degs[v] >= Solution.minDegree) {
+			if (degs[v] < listV.size() - 1) {// at least has another no-leaf						// node
+				int x = -1;
+				double minDist = Integer.MAX_VALUE;
+				for (int node : listV) {
+					if (degs[node] >= Solution.minDegree && node != v && w[node][u] < minDist) {
+						x = node;
+						minDist = w[node][u];
+					}
+				}
+				edges[dIdx] = new Edge(u, x, minDist);
+				degs[u]++;
+				degs[x]++;
+			} else {// only v is no-leaf node
+				int x = -1;
+				double minDist = Integer.MAX_VALUE;
+				for (int node : listV) {
+					if (w[node][u] < minDist && node != v) {
+						x = node;
+						minDist = w[node][u];
+					}
+				}
+				edges[dIdx] = new Edge(u, x, minDist);
+				degs[u]++;
+				degs[x]++;
+				int moveNum = 0;
+				if (degs[v] - Solution.minDegree >= Solution.minDegree - degs[x]) {
+					moveNum = Solution.minDegree - degs[x];
+				} else {
+					moveNum = degs[v] - 1;
+				}
+				int idx = rand.nextInt(eLists[v].size());
+				while (moveNum-- > 0) {
+					idx = (idx + 1) % eLists[v].size();
+					while (eLists[v].get(idx) == x || eLists[v].get(idx) == u) {
+						idx = (idx + 1) % eLists[v].size();
+					}
+					int y = eLists[v].get(idx);
+					int index = -1;
+					for (int i = 0; i < edges.length; i++) {// find edge v-y
+						Edge e = edges[i];
+						if ((e.p1 == v && e.p2 == y) || (e.p2 == v && e.p1 == y)) {
+							index = i;
+							break;
+						}
+					}
+					edges[index] = new Edge(y, x, w[y][x]); // delete v-y and
+															// add x-y
+				}
+			}
+		} else {// degs[u] == 0 && degs[v] < minDegree 
+			// let v be a no-leaf node, u is a leaf node
+			int x = -1;
+			List<Edge> es = new ArrayList<>();
+			for (Edge e : edges) {
+				if (e.p1 != v && e.p2 != v) {
+					es.add(e);
+				}
+			}
+
+			// add u
+			double minDist = Integer.MAX_VALUE;
+			for (int node : listV) {
+				if (node != v && degs[node] >= Solution.minDegree && w[node][u] < minDist) {
+					x = node;
+					minDist = w[node][u];
+				}
+			}
+			es.add(new Edge(u, x, minDist));
+
+			// find a tabu node, such that the tree will not be splitted
+			int tabu = -1;
+			double min = Integer.MAX_VALUE;
+			for (int node : eLists[v]) {
+				if (node == x) {
+					tabu = x;
+					break;
+				} else if (degs[node] >= Solution.minDegree&&min>w[node][v]) {
+					tabu = node;
+					min = w[node][v];
+				}
+			}
+			if (tabu == -1) {
+				System.err.println("Error when select tabu");
+				System.exit(1);
+			} /*
+				 * else if (tabu != x) { System.out.println(tabu + "---" + x); }
+				 */
+			if (tabu == x) {
+				es.add(new Edge(v, tabu, w[v][tabu]));
+				for (int y : eLists[v]) {
+					if (y != u && y != tabu) {
+						es.add(new Edge(y, x, w[y][x])); // delete v-y and add
+															// x-y
+					}
+				}
+				int i = 0;
+				for (Edge e : es) {
+					edges[i++] = e;
+				}
+			} else {
+				es.add(new Edge(v, tabu, w[v][tabu]));
+				for (int y : eLists[v]) {
+					if (y != u && y != tabu) {
+						es.add(new Edge(y, tabu, w[y][tabu])); // delete v-y and	// add x-y
+					}
+				}
+				int i = 0;
+				for (Edge e : es) {
+					edges[i++] = e;
+				}
+			}
+		}
+		
+		return edges;
+	
